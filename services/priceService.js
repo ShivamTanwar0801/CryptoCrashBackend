@@ -21,7 +21,7 @@ async function getPrices(currencies = []) {
           vs_currencies: "usd",
         },
         headers: {
-          "User-Agent": "CryptoCrashApp/1.0 (contact: your@email.com)",
+          "User-Agent": "CryptoCrashApp/1.0 (contact: shivamtanwar0801@gmail.com)",
           Accept: "application/json",
         },
       }
