@@ -1,4 +1,3 @@
-// services/priceService.js
 const axios = require("axios");
 
 const API_KEY = process.env.CMC_API_KEY;
@@ -10,13 +9,13 @@ const SYMBOL_MAP = {
 };
 
 let cache = {
-  data: null,
+  data: {},
   timestamp: 0,
 };
 
 async function getPrices() {
   const now = Date.now();
-  const CACHE_DURATION = 10000; // 10 seconds
+  const CACHE_DURATION = 10 * 1000; // 10 seconds
 
   if (cache.data && now - cache.timestamp < CACHE_DURATION) {
     return cache.data;
@@ -30,10 +29,10 @@ async function getPrices() {
       },
     });
 
-    const prices = {
-      BTC: res.data.data.BTC.quote.USD.price,
-      ETH: res.data.data.ETH.quote.USD.price,
-    };
+    const prices = {};
+    for (const [key, value] of Object.entries(res.data.data)) {
+      prices[key] = parseFloat(value.quote.USD.price);
+    }
 
     cache = {
       data: prices,
