@@ -10,12 +10,13 @@ async function getAllPlayers(req, res) {
       const wallet = player.wallet || {};
       const enrichedWallet = {};
 
+      console.log(wallet)
+
       for (const currency of Object.keys(wallet)) {
         const amount = wallet[currency];
         const price = await getPrice(currency.toLowerCase());
 
-        console.log(price)
-
+    
         if (!price || typeof price !== "number" || isNaN(price)) {
           enrichedWallet[currency.toUpperCase()] = {
             amount,
