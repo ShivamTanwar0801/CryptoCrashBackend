@@ -1,34 +1,35 @@
-const axios = require('axios');
+// services/priceService.js
+const axios = require("axios");
+
 let cache = {};
 
-async function getPrice(currency) {
+async function getPrices(currencies = []) {
   const now = Date.now();
-  currency = currency.toLowerCase();
+  const cacheKey = currencies.sort().join(",");
 
-  if (cache[currency] && now - cache[currency].timestamp < 10000) {
-    return cache[currency].price;
+  // If cached prices are fresh (within 10s), return
+  if (cache[cacheKey] && now - cache[cacheKey].timestamp < 10000) {
+    return cache[cacheKey].data;
   }
 
   try {
     const res = await axios.get(
-      `https://api.coingecko.com/api/v3/simple/price?ids=${currency}&vs_currencies=usd`,
+      `https://api.coingecko.com/api/v3/simple/price`,
       {
-        headers: {
-          'User-Agent': 'CryptoCrashApp/1.0 (Render Server)',
-          'Accept': 'application/json',
+        params: {
+          ids: currencies.join(","),
+          vs_currencies: "usd",
         },
       }
     );
 
-    const price = res.data[currency]?.usd;
-    if (price === undefined) throw new Error("Price not found in response");
-
-    cache[currency] = { price, timestamp: now };
-    return price;
+    const data = res.data;
+    cache[cacheKey] = { data, timestamp: now };
+    return data;
   } catch (err) {
-    console.error(`🔥 CoinGecko request failed for ${currency}:`, err.message);
-    throw err;
+    console.error("🔥 CoinGecko bulk request failed:", err.message);
+    throw new Error("Failed to fetch prices from CoinGecko");
   }
 }
 
-module.exports = { getPrice };
+module.exports = { getPrices };
