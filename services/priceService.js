@@ -14,11 +14,15 @@ async function getPrices(currencies = []) {
 
   try {
     const res = await axios.get(
-      `https://api.coingecko.com/api/v3/simple/price`,
+      "https://api.coingecko.com/api/v3/simple/price",
       {
         params: {
           ids: currencies.join(","),
           vs_currencies: "usd",
+        },
+        headers: {
+          "User-Agent": "CryptoCrashApp/1.0 (contact: your@email.com)",
+          Accept: "application/json",
         },
       }
     );
