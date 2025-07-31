@@ -14,20 +14,21 @@ async function getAllPlayers(req, res) {
 
       for (const currency of Object.keys(wallet)) {
         const amount = wallet[currency];
-        const price = await getPrice(currency.toLowerCase());
+        let price = 0;
 
-    
-        if (!price || typeof price !== "number" || isNaN(price)) {
-          enrichedWallet[currency.toUpperCase()] = {
-            amount,
-            usd: 0,
-          };
-        } else {
-          enrichedWallet[currency.toUpperCase()] = {
-            amount,
-            usd: parseFloat((amount * price).toFixed(2)),
-          };
+        try {
+          price = await getPrice(currency.toLowerCase());
+        } catch (err) {
+          console.error(
+            `⚠️ Failed to fetch price for ${currency}:`,
+            err.message
+          );
         }
+
+        enrichedWallet[currency.toUpperCase()] = {
+          amount,
+          usd: parseFloat((amount * price).toFixed(2)),
+        };
       }
 
       result.push({
