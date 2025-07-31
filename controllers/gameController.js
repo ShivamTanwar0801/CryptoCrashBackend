@@ -1,7 +1,7 @@
 const Player = require("../models/Player");
 const Round = require("../models/Round");
 const Transaction = require("../models/Transaction");
-const { getPrice } = require("../services/priceService");
+const { getPrices, SYMBOL_MAP } = require("../services/priceService");
 const { generateTransactionHash } = require("../utils/cryptoUtils");
 const {
   addBetToCurrentRound,
@@ -12,17 +12,27 @@ const {
 async function placeBet(req, res) {
   try {
     const { playerId, usdAmount, currency } = req.body;
-    const price = await getPrice(currency);
+
+    const prices = await getPrices();
+    const symbol = SYMBOL_MAP[currency.toLowerCase()];
+    const price = prices[symbol];
+
+    if (!price) {
+      return res
+        .status(400)
+        .json({ error: "Invalid currency or price unavailable" });
+    }
+
     const cryptoAmount = usdAmount / price;
 
     const player = await Player.findById(playerId);
-    if (!player || player.wallet[currency.toUpperCase()] < cryptoAmount) {
+    if (!player || player.wallet[currency.toLowerCase()] < cryptoAmount) {
       return res
         .status(400)
         .json({ error: "Insufficient balance or invalid player" });
     }
 
-    player.wallet[currency.toUpperCase()] -= cryptoAmount;
+    player.wallet[currency.toLowerCase()] -= cryptoAmount;
     await player.save();
 
     addBetToCurrentRound({
@@ -45,8 +55,6 @@ async function placeBet(req, res) {
         roundNumber: currentRound.roundNumber,
       });
     }
-
-    console.log(currentRound);
 
     const tx = new Transaction({
       playerId,
@@ -72,11 +80,11 @@ async function placeBet(req, res) {
 async function cashOut(req, res) {
   try {
     const { playerId, roundNumber, multiplier, currency } = req.body;
+
     const round = getCurrentRound();
     if (!round || round.roundNumber !== roundNumber) {
       return res.status(404).json({ error: "Round not found or not active" });
     }
-    console.log(round);
 
     const bet = round.bets.find(
       (b) => b.playerId.toString() === playerId && !b.cashedOut
@@ -89,13 +97,21 @@ async function cashOut(req, res) {
 
     const cryptoPayout = bet.cryptoAmount * multiplier;
     const player = await Player.findById(playerId);
-    player.wallet[currency.toUpperCase()] += cryptoPayout;
+
+    player.wallet[currency.toLowerCase()] += cryptoPayout;
     await player.save();
 
     bet.cashedOut = true;
     bet.cashoutMultiplier = multiplier;
 
-    const price = await getPrice(currency);
+    const prices = await getPrices();
+    const symbol = SYMBOL_MAP[currency.toLowerCase()];
+    const price = prices[symbol];
+
+    if (!price) {
+      return res.status(400).json({ error: "price not available for payout" });
+    }
+
     const tx = new Transaction({
       playerId,
       usdAmount: cryptoPayout * price,
