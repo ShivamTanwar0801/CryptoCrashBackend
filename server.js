@@ -11,16 +11,19 @@ const { socketService } = require("./services/socketService");
 
 const app = express();
 const server = http.createServer(app);
+
+const allowedOrigin = "https://crypto-crash-frontend-ochre.vercel.app/"
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigin,
     methods: ["GET", "POST"],
   },
 });
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigin,
     methods: ["GET", "POST"],
   })
 );
