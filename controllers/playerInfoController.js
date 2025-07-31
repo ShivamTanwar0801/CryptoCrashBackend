@@ -1,47 +1,46 @@
+// controllers/playerController.js
 const Player = require("../models/Player");
-const { getPrice } = require("../services/priceService");
+const { getPrices } = require("../services/priceService");
 
 async function getAllPlayers(req, res) {
   try {
     const players = await Player.find();
-    const result = [];
+    const allCurrencies = new Set();
 
-    for (const player of players) {
-      const wallet = player.wallet || {};
+    // Collect all unique currencies
+    players.forEach((p) => {
+      Object.keys(p.wallet || {}).forEach((c) => {
+        allCurrencies.add(c.toLowerCase());
+      });
+    });
+
+    // Fetch prices in one request
+    const priceData = await getPrices([...allCurrencies]);
+
+    const result = players.map((player) => {
       const enrichedWallet = {};
 
-      console.log(wallet)
-
-      for (const currency of Object.keys(wallet)) {
-        const amount = wallet[currency];
-        let price = 0;
-
-        try {
-          price = await getPrice(currency.toLowerCase());
-        } catch (err) {
-          console.error(
-            `⚠️ Failed to fetch price for ${currency}:`,
-            err.message
-          );
-        }
+      for (const currency of Object.keys(player.wallet || {})) {
+        const amount = player.wallet[currency];
+        const usd = priceData[currency.toLowerCase()]?.usd || 0;
 
         enrichedWallet[currency.toUpperCase()] = {
           amount,
-          usd: parseFloat((amount * price).toFixed(2)),
+          usd: parseFloat((amount * usd).toFixed(2)),
         };
       }
 
-      result.push({
+      return {
         playerId: player._id,
         wallet: enrichedWallet,
-      });
+      };
+    });
 
-      console.log("yes:", result)
-    }
-    
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: 'hello this is error' });
+    console.error("❌ Failed in getAllPlayers:", err.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
+
 module.exports = { getAllPlayers };
