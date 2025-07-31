@@ -35,7 +35,7 @@ async function getAllPlayers(req, res) {
     
     res.json(result);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'hello this is error' });
   }
 }
 module.exports = { getAllPlayers };
