@@ -6,6 +6,8 @@ async function getAllPlayers(req, res) {
     const players = await Player.find();
     const result = [];
 
+    console.log("hello: ", players)
+
     for (const player of players) {
       const wallet = player.wallet || {};
       const enrichedWallet = {};
