@@ -1,39 +1,50 @@
 // services/priceService.js
 const axios = require("axios");
 
-let cache = {};
+const API_KEY = process.env.CMC_API_KEY;
+const BASE_URL = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest";
 
-async function getPrices(currencies = []) {
+const SYMBOL_MAP = {
+  bitcoin: "BTC",
+  ethereum: "ETH",
+};
+
+let cache = {
+  data: null,
+  timestamp: 0,
+};
+
+async function getPrices() {
   const now = Date.now();
-  const cacheKey = currencies.sort().join(",");
+  const CACHE_DURATION = 10000; // 10 seconds
 
-  // If cached prices are fresh (within 10s), return
-  if (cache[cacheKey] && now - cache[cacheKey].timestamp < 10000) {
-    return cache[cacheKey].data;
+  if (cache.data && now - cache.timestamp < CACHE_DURATION) {
+    return cache.data;
   }
 
   try {
-    const res = await axios.get(
-      "https://api.coingecko.com/api/v3/simple/price",
-      {
-        params: {
-          ids: currencies.join(","),
-          vs_currencies: "usd",
-        },
-        headers: {
-          "User-Agent": "CryptoCrashApp/1.0 (contact: shivamtanwar0801@gmail.com)",
-          Accept: "application/json",
-        },
-      }
-    );
+    const symbols = Object.values(SYMBOL_MAP).join(",");
+    const res = await axios.get(`${BASE_URL}?symbol=${symbols}&convert=USD`, {
+      headers: {
+        "X-CMC_PRO_API_KEY": API_KEY,
+      },
+    });
 
-    const data = res.data;
-    cache[cacheKey] = { data, timestamp: now };
-    return data;
+    const prices = {
+      BTC: res.data.data.BTC.quote.USD.price,
+      ETH: res.data.data.ETH.quote.USD.price,
+    };
+
+    cache = {
+      data: prices,
+      timestamp: now,
+    };
+
+    return prices;
   } catch (err) {
-    console.error("🔥 CoinGecko bulk request failed:", err.message);
-    throw new Error("Failed to fetch prices from CoinGecko");
+    console.error("🔥 CoinMarketCap bulk request failed:", err.message);
+    throw new Error("Failed to fetch prices from CoinMarketCap");
   }
 }
 
-module.exports = { getPrices };
+module.exports = { getPrices, SYMBOL_MAP };
