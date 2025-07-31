@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Crypto Crash WebSocket</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: "Courier New", Courier, monospace;
+        background-color: #1a1a2e;
+        color: #e0e0e0;
+      }
+
+      h1 {
+        text-align: center;
+        color: #00f7ff;
+        margin-bottom: 20px;
+      }
+
+      #log {
+        background-color: #282c34;
+        border: 1px solid #444;
+        padding: 20px;
+        border-radius: 10px;
+        max-height: 80vh;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-size: 14px;
+      }
+
+      .log-entry {
+        margin-bottom: 6px;
+      }
+
+      .round-start {
+        color: #00f7ff;
+      }
+      .multiplier {
+        color: #00ff90;
+      }
+      .cashout {
+        color: #ffd700;
+      }
+      .crash {
+        color: #ff4d4d;
+      }
+      .bet {
+        color: #ffa94d;
+      }
+      .connected {
+        color: #70ff70;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>💥 Crypto Crash WebSocket Client</h1>
+    <div id="log"></div>
+    <button
+      onclick="log.scrollTop = log.scrollHeight"
+      style="
+        position: fixed;
+        bottom: 20px;
+        right: 50px;
+        padding: 10px 15px;
+        background-color: #00f7ff;
+        border: none;
+        color: #1a1a2e;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      "
+    >
+      ⬇ Scroll to Bottom
+    </button>
+
+    <button
+      onclick="log.innerHTML=''"
+      style="
+        position: fixed;
+        bottom: 65px;
+        right: 50px;
+        padding: 8px 12px;
+        background-color: #ff4d4d;
+        border: none;
+        color: white;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+      "
+    >
+      🧹 Clear Log
+    </button>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+      const log = document.getElementById("log");
+      const socket = io("http://localhost:3000");
+
+      const appendLog = (message, type = "") => {
+        const shouldScroll =
+          log.scrollTop + log.clientHeight >= log.scrollHeight - 10;
+
+        const line = document.createElement("div");
+        line.classList.add("log-entry");
+        if (type) line.classList.add(type);
+        line.textContent = message;
+        log.appendChild(line);
+
+        if (shouldScroll) {
+          log.scrollTop = log.scrollHeight;
+        }
+
+        if (log.children.length > 500) {
+          log.removeChild(log.firstChild); // Keep max 500 lines
+        }
+      };
+
+      socket.on("connect", () =>
+        appendLog("✅ Connected to WebSocket server", "connected")
+      );
+
+      socket.on("round_start", (data) => {
+        appendLog("──────────────────────────────", "round-start");
+        appendLog(`🚀 Round Start: ${JSON.stringify(data)}`, "round-start");
+      });
+
+      socket.on("multiplier_update", (data) =>
+        appendLog(`📈 Multiplier: ${data.multiplier}`, "multiplier")
+      );
+
+      socket.on("cashout", (data) =>
+        appendLog(`💸 Cashout: ${JSON.stringify(data)}`, "cashout")
+      );
+
+      socket.on("round_crash", (data) =>
+        appendLog(`💥 Crashed at: ${JSON.stringify(data)}x`, "crash")
+      );
+
+      socket.on("bet_placed", (data) => {
+        appendLog(
+          `🎯 Bet Placed: ${data.playerId} → ${
+            data.usdAmount
+          } USD in ${data.currency.toUpperCase()} (${data.cryptoAmount})`,
+          "bet"
+        );
+      });
+    </script>
+  </body>
+</html>
