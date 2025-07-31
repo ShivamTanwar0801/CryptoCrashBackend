@@ -33,6 +33,8 @@ async function getAllPlayers(req, res) {
         playerId: player._id,
         wallet: enrichedWallet,
       });
+
+      console.log("yes:", result)
     }
     
     res.json(result);
